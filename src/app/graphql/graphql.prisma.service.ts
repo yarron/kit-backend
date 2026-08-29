@@ -17,17 +17,30 @@ import type { FilterGetInput, FilterInput, SortInput } from "./graphql.input";
  * фильтровать по полям, которые ты не собирался показывать.
  */
 @Injectable()
-export class GraphqlPrismaService extends PrismaService {
-	/** Имя делегата Prisma: "invoice" → this.db.invoice. Задаёт наследник. */
+export class GraphqlPrismaService {
+	/** Имя делегата Prisma: "invoice" → prisma.db.invoice. Задаёт наследник. */
 	protected modelName = "";
 
 	/** Поля, по которым клиенту РАЗРЕШЕНО фильтровать и сортировать. */
 	protected allowedColumns: string[] = [];
 
+	/**
+	 * ⚠️ Клиент приходит ЧЕРЕЗ КОНСТРУКТОР, а не наследованием.
+	 *
+	 * Соблазн написать `extends PrismaService` велик — с Mongo так и сделано,
+	 * и выглядит симметрично. Но `PrismaService` САМ является `PrismaClient`:
+	 * унаследовавший его сервис — это ВТОРОЙ клиент со своим пулом соединений
+	 * и своим `$connect()`. Пять доменных сервисов = пять пулов по 10 коннектов,
+	 * а у Postgres их всего сотня на всех.
+	 *
+	 * Поймано в логе: «Postgres connected» печаталось дважды.
+	 */
+	constructor(protected readonly prisma: PrismaService) {}
+
 	private get delegate() {
 		// Через `db` — то есть через клиент С расширениями. Обращение к
-		// `this[modelName]` напрямую обошло бы soft-delete.
-		return this.db[this.modelName];
+		// `prisma[modelName]` напрямую обошло бы soft-delete.
+		return this.prisma.db[this.modelName];
 	}
 
 	private isAllowed(column: string): boolean {

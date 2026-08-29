@@ -21,7 +21,20 @@ export const graphqlFactory = (modules: Type<unknown>[]) => () => ({
 	autoSchemaFile: true,
 	sortSchema: true,
 	path: "/gql",
-	debug: !isProduction,
+
+	/**
+	 * ⚠️ Стектрейс наружу — самая тихая утечка в этом файле.
+	 *
+	 * `debug` — опция Apollo Server 3, в 4/5 её нет; она молча игнорируется.
+	 * Реальный ключ — `includeStacktraceInErrorResponses`, и по умолчанию он
+	 * смотрит на `NODE_ENV`. Мы окружение определяем по `PLATFORM_ENV`, поэтому
+	 * без явной строки ниже прод отдавал клиенту стектрейс: сообщение
+	 * замаскировано в «Internal server error», а в `extensions.stacktrace`
+	 * лежат пути к файлам, названия классов и версия фреймворка.
+	 *
+	 * Поймано боевым прогоном, а не чтением — из кода это не видно вообще.
+	 */
+	includeStacktraceInErrorResponses: !isProduction,
 	// Introspection and the playground are a complete map of your data model.
 	// Fine locally, never in production.
 	playground: !isProduction,

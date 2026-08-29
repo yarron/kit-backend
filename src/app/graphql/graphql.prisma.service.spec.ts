@@ -43,7 +43,9 @@ describe("GraphqlPrismaService query building", () => {
 		PrismaService._options = {
 			db: { url: "postgresql://u:p@localhost:5432/test", logging: false },
 		};
-		service = new TestService();
+		// Клиент подставляется заглушкой: строитель запроса до базы не доходит,
+		// а поднимать настоящий PrismaClient ради проверки WHERE — это уже e2e.
+		service = new TestService({ db: {} } as never);
 	});
 
 	// Главное: колонка, которой нет в белом списке, НЕ доходит до базы.

@@ -5,7 +5,10 @@ import { getModelToken } from "@nestjs/mongoose";
 import { Test } from "@nestjs/testing";
 import { AppModule } from "@src/app";
 import type { Model } from "mongoose";
-import { gql } from "../../../../test/helpers/graphql.helper";
+import {
+	gql,
+	gqlWithoutServiceToken,
+} from "../../../../test/helpers/graphql.helper";
 
 /**
  * A real end-to-end test: the whole Nest container, the real GraphQL schema,
@@ -89,6 +92,20 @@ describe("User GraphQL (e2e)", () => {
 		});
 
 		expect(res.errors).toBeDefined();
+	});
+
+	it("отклоняет запрос без service-token — дверь заперта", async () => {
+		// Проверяем то, что реально стоит в проде: бэкенд отвечает только своим
+		// сервисам. В TEST токен задан НЕ пустым намеренно — с пустым guard
+		// выключается, и весь e2e зеленел бы, ни разу не пройдя через проверку.
+		// Это ложный зелёный ровно того вида, который дороже всего.
+		const res = await gqlWithoutServiceToken(
+			app,
+			"query { users(payload: { paginate: { skip: 0, take: 1 } }) { meta { total } } }",
+		);
+
+		expect(res.errors?.[0]?.message).toMatch(/service token/i);
+		expect(res.errors?.[0]?.extensions?.code).toBe("UNAUTHENTICATED");
 	});
 
 	it("rejects a request with no API key", async () => {

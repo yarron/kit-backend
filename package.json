@@ -5,7 +5,7 @@
 	"license": "UNLICENSED",
 	"private": true,
 	"engines": {
-		"node": ">=22"
+		"node": ">=24"
 	},
 	"packageManager": "pnpm@9.1.3",
 	"scripts": {
@@ -36,10 +36,10 @@
 		"prisma:local:status": "MIGRATIONS_ENV=local env-cmd -e LOCAL prisma migrate status",
 		"prisma:local:reset": "pnpm prisma:generate && MIGRATIONS_ENV=local env-cmd -e LOCAL prisma migrate reset",
 		"prisma:local:studio": "env-cmd -e LOCAL prisma studio",
-		"prisma:test:gen": "pnpm prisma:generate && MIGRATIONS_ENV=test env-cmd -e TEST prisma migrate dev",
-		"prisma:test:deploy": "pnpm prisma:generate && MIGRATIONS_ENV=test env-cmd -e TEST prisma migrate deploy",
-		"prisma:test:status": "MIGRATIONS_ENV=test env-cmd -e TEST prisma migrate status",
-		"prisma:test:reset": "pnpm prisma:generate && MIGRATIONS_ENV=test env-cmd -e TEST prisma migrate reset",
+		"prisma:test:gen": "pnpm prisma:generate && MIGRATIONS_ENV=local env-cmd -e TEST prisma migrate dev",
+		"prisma:test:deploy": "pnpm prisma:generate && MIGRATIONS_ENV=local env-cmd -e TEST prisma migrate deploy",
+		"prisma:test:status": "MIGRATIONS_ENV=local env-cmd -e TEST prisma migrate status",
+		"prisma:test:reset": "pnpm prisma:generate && MIGRATIONS_ENV=local env-cmd -e TEST prisma migrate reset",
 		"prisma:test:studio": "env-cmd -e TEST prisma studio",
 		"prisma:prod:deploy": "pnpm prisma:generate && MIGRATIONS_ENV=prod env-cmd -e PROD prisma migrate deploy",
 		"prisma:prod:status": "MIGRATIONS_ENV=prod env-cmd -e PROD prisma migrate status",

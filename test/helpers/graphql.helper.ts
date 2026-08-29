@@ -22,7 +22,25 @@ export const gql = async <T = unknown>(
 	const response = await request(app.getHttpServer())
 		.post("/gql")
 		.set("x-api-key", apiKey)
+		// Service-token в TEST задан НЕ пустым намеренно: с пустым guard
+		// выключается, и e2e зеленели бы, ни разу не пройдя через проверку,
+		// которая стоит в проде. Ложный зелёный ровно того вида, который
+		// дороже всего.
+		.set("x-service-token", process.env.SERVICE_TOKEN ?? "")
 		.send({ query, variables });
+
+	return response.body as GraphqlResult<T>;
+};
+
+/** Запрос БЕЗ service-token — для проверки, что дверь заперта. */
+export const gqlWithoutServiceToken = async <T = unknown>(
+	app: INestApplication,
+	query: string,
+): Promise<GraphqlResult<T>> => {
+	const response = await request(app.getHttpServer())
+		.post("/gql")
+		.set("x-api-key", process.env.PLATFORM_KEY ?? "test-admin-key")
+		.send({ query });
 
 	return response.body as GraphqlResult<T>;
 };

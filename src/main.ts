@@ -15,6 +15,7 @@ import { CONFIG } from "./config";
 
 async function bootstrap(): Promise<void> {
 	const logger = new Logger("Bootstrap");
+	const isDev = CONFIG.platform.env !== "production";
 
 	const app = await NestFactory.create<NestExpressApplication>(AppModule, {
 		cors: { origin: CONFIG.platform.origin, credentials: true },
@@ -47,7 +48,7 @@ async function bootstrap(): Promise<void> {
 	// Swagger documents the REST surface (health checks here). GraphQL documents
 	// itself. Both are OFF in production — an introspectable schema is a map of
 	// your data model handed to anyone who asks.
-	if (CONFIG.platform.env !== "production") {
+	if (isDev) {
 		SwaggerModule.setup(
 			"swg",
 			app,
@@ -78,11 +79,14 @@ async function bootstrap(): Promise<void> {
 
 	await app.listen(CONFIG.platform.port);
 
+	// Печатаем ТОЛЬКО то, что действительно смонтировано. Строка про Swagger
+	// в проде, где он отдаёт 404, — это ложный след, по которому кто-то потом
+	// полчаса ищет, почему «документация не открывается».
 	const base = `http://localhost:${CONFIG.platform.port}`;
 	logger.log(`🚀 HTTP      ${base}`);
 	logger.log(`🔷 GraphQL   ${base}/gql`);
-	logger.log(`📚 Swagger   ${base}/swg`);
 	logger.log(`🐮 BullBoard ${base}/que`);
+	if (isDev) logger.log(`📚 Swagger   ${base}/swg`);
 }
 
 bootstrap();

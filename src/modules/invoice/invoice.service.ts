@@ -1,5 +1,6 @@
 import { ErrorMsgEnum } from "@app/app.enum";
 import { GraphqlPrismaService } from "@app/graphql/graphql.prisma.service";
+import { PrismaService } from "@libs/prisma/src";
 import {
 	BadRequestException,
 	Injectable,
@@ -33,8 +34,14 @@ export class InvoiceService extends GraphqlPrismaService {
 		"createdAt",
 	];
 
+	// Клиент инжектится, а не наследуется: наследование дало бы этому сервису
+	// СВОЙ пул соединений к Postgres. См. комментарий в GraphqlPrismaService.
+	constructor(prisma: PrismaService) {
+		super(prisma);
+	}
+
 	async createInvoice(input: InvoiceCreateInput): Promise<InvoiceEntity> {
-		return this.db.invoice.create({
+		return this.prisma.db.invoice.create({
 			data: {
 				orderId: input.orderId,
 				amountUsd: round(input.amountUsd),
@@ -52,7 +59,7 @@ export class InvoiceService extends GraphqlPrismaService {
 	 * мы взяли SQL ради транзакций, надо ими пользоваться.
 	 */
 	async setStatus(input: InvoiceSetStatusInput): Promise<InvoiceEntity> {
-		return this.$transaction(async (tx) => {
+		return this.prisma.$transaction(async (tx) => {
 			const current = await tx.invoice.findUnique({ where: { id: input.id } });
 
 			if (!current || current.deletedAt) {
@@ -83,10 +90,10 @@ export class InvoiceService extends GraphqlPrismaService {
 	 * вместо того чтобы молча подменить операцию.
 	 */
 	async remove(id: number): Promise<boolean> {
-		const found = await this.db.invoice.findFirst({ where: { id } });
+		const found = await this.prisma.db.invoice.findFirst({ where: { id } });
 		if (!found) throw new NotFoundException(ErrorMsgEnum.EntityNotExist);
 
-		await this.db.invoice.update({
+		await this.prisma.db.invoice.update({
 			where: { id },
 			data: { deletedAt: new Date() },
 		});
