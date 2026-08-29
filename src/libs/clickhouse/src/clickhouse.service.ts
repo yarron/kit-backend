@@ -45,7 +45,7 @@ export class ClickHouseService implements OnModuleInit, OnModuleDestroy {
 			database,
 			username,
 			password,
-			application: "kit",
+			application: "kit-backend",
 		});
 		ClickHouseService.sharedClient = this.client;
 	}

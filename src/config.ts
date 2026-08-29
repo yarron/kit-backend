@@ -47,7 +47,7 @@ export const CONFIG = {
 		// порты — самый частый источник «у меня не стартует».
 		port: Number(process.env.PORT) || 9800,
 		env: process.env.PLATFORM_ENV || "local",
-		origin: process.env.PLATFORM_ORIGIN || "http://localhost:3000",
+		origin: process.env.PLATFORM_ORIGIN || "http://localhost:3800",
 		/** Guards the GraphQL API, BullBoard and Swagger. Never commit a real one. */
 		apiKey: process.env.PLATFORM_KEY || "local-admin-key",
 		/**
