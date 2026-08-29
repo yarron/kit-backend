@@ -1,0 +1,81 @@
+name: CI
+
+# Запускается на PR и на push в main. На PR — потому что это и есть та
+# проверка, которая делает автомерж безопасным: без неё «влить автоматически»
+# означает «влить непроверенное автоматически».
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Настоящие базы, а не моки: e2e поднимает реальный контейнер Nest.
+    # Порты совпадают с docker-compose и с .env-cmdrc.json.example, поэтому
+    # конфиг в CI берётся тот же, что локально, — без второй копии правды.
+    services:
+      mongodb:
+        image: mongo:8
+        ports: ["27811:27017"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.runCommand({ping:1})'"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7-alpine
+        ports: ["63811:6379"]
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: starter
+          POSTGRES_PASSWORD: starter
+          POSTGRES_DB: starter
+        ports: ["54811:5432"]
+        options: >-
+          --health-cmd "pg_isready -U starter"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.1.3
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Config
+        # Тот же пример, что читает разработчик. Если он разошёлся
+        # с реальностью, CI это заметит — а не человек через месяц.
+        run: cp .env-cmdrc.json.example .env-cmdrc.json
+
+      - name: Test database
+        run: |
+          PGPASSWORD=starter psql -h localhost -p 54811 -U starter -d starter \
+            -c "CREATE DATABASE starter_test OWNER starter;"
+          MIGRATIONS_ENV=local pnpm exec env-cmd -e TEST prisma migrate deploy
+
+      - name: Lint and format
+        # `--write` в CI не нужен: правит пусть человек у себя. Здесь только
+        # проверяем, и несоответствие роняет сборку.
+        run: pnpm exec biome check ./src ./test
+
+      - name: Build
+        run: pnpm exec nest build
+
+      - name: Unit tests
+        run: pnpm test:unit
+
+      - name: E2E tests
+        run: pnpm test:e2e
