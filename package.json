@@ -1,8 +1,9 @@
 {
 	"name": "kit-backend",
 	"version": "1.0.0",
-	"description": "Production-shaped NestJS starter: GraphQL + Mongo + BullMQ + ClickHouse",
+	"author": "Yaroslaw Romanov <tech@architech.nyc> (https://github.com/yarron)",
 	"license": "UNLICENSED",
+	"description": "Production-shaped NestJS starter: GraphQL + Mongo + BullMQ + ClickHouse",
 	"private": true,
 	"engines": {
 		"node": ">=24"
