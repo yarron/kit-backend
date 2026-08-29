@@ -1,0 +1,92 @@
+import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
+import { ExpressAdapter } from "@bull-board/express";
+import { BullBoardModule } from "@bull-board/nestjs";
+import { ClickHouseModule } from "@libs/clickhouse/src";
+import { BullModule } from "@nestjs/bullmq";
+import { Module } from "@nestjs/common";
+import { GraphQLModule } from "@nestjs/graphql";
+import { MongooseModule } from "@nestjs/mongoose";
+import { ScheduleModule } from "@nestjs/schedule";
+import { TerminusModule } from "@nestjs/terminus";
+import basicAuth from "express-basic-auth";
+import { RedisModule } from "nestjs-redis-box";
+import { CONFIG } from "../config";
+import { modules } from "../modules/modules";
+import { AppController } from "./app.controller";
+import { QueueName } from "./app.enum";
+import { AppExceptionFilter } from "./exception/app.filter";
+import { RedisLifecycle } from "./redis-lifecycle.provider";
+
+/**
+ * The composition root. Nothing here has business logic — it wires
+ * infrastructure and hands it to the feature modules.
+ *
+ * Queues are registered from the `QueueName` enum rather than listed by hand,
+ * so a new queue automatically appears in BullBoard. The alternative is the
+ * classic bug: the queue exists, jobs pile up in it, and it is invisible in the
+ * dashboard because someone forgot the second registration.
+ */
+const allQueues = Object.values(QueueName);
+
+const bullQueues = allQueues.map((name) =>
+	BullModule.registerQueue({
+		name,
+		// Without this the process does not exit on shutdown.
+		//
+		// `queue.close()` stops the queue but leaves the ioredis socket open —
+		// `forceDisconnectOnShutdown` (default false) is what actually tears it
+		// down. Symptoms: Jest prints "did not exit one second after the test run"
+		// and hangs in CI, and in production the container survives SIGTERM until
+		// the platform kills it.
+		//
+		// The usual workaround is `jest --forceExit`, which hides the test symptom
+		// and keeps the production one.
+		forceDisconnectOnShutdown: true,
+	}),
+);
+
+const bullBoardFeatures = allQueues.map((name) =>
+	BullBoardModule.forFeature({ name, adapter: BullMQAdapter }),
+);
+
+@Module({
+	controllers: [AppController],
+	imports: [
+		...modules,
+		...bullQueues,
+		...bullBoardFeatures,
+
+		MongooseModule.forRoot(CONFIG.mongodb.connection, {
+			dbName: CONFIG.mongodb.dbName,
+			// Pool size is per PROCESS, not per request. Too small and requests
+			// queue behind each other under load; too large and you exhaust the
+			// server's connection limit with a few containers.
+			maxPoolSize: 20,
+		}),
+
+		RedisModule.register(CONFIG.redis),
+		BullModule.forRoot(CONFIG.redis),
+		ClickHouseModule.register(CONFIG.clickhouse),
+
+		GraphQLModule.forRootAsync(CONFIG.graphqlFn(modules)),
+
+		// Enables @Cron decorators anywhere in the app.
+		ScheduleModule.forRoot(),
+		TerminusModule,
+
+		BullBoardModule.forRoot({
+			route: "/que",
+			adapter: ExpressAdapter,
+			// The dashboard can retry, delete and inspect job payloads. Payloads
+			// contain customer data. It is never left open.
+			middleware: [
+				basicAuth({
+					challenge: true,
+					users: { admin: CONFIG.platform.apiKey },
+				}),
+			],
+		}),
+	],
+	providers: [AppExceptionFilter, RedisLifecycle],
+})
+export class AppModule {}

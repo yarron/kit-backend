@@ -1,0 +1,39 @@
+{
+	"_comment": "Copy to .mcp.json and fill in. .mcp.json is gitignored: it holds live credentials.",
+	"mcpServers": {
+		"mongodb_local": {
+			"command": "npx",
+			"args": ["-y", "mongodb-mcp-server"],
+			"env": {
+				"MDB_MCP_CONNECTION_STRING": "mongodb://localhost:27811/starter"
+			}
+		},
+		"redis_local": {
+			"command": "npx",
+			"args": ["-y", "@modelcontextprotocol/server-redis", "redis://localhost:63811"]
+		},
+		"clickhouse_local": {
+			"command": "uv",
+			"args": ["run", "--with", "mcp-clickhouse", "--python", "3.13", "mcp-clickhouse"],
+			"env": {
+				"CLICKHOUSE_HOST": "localhost",
+				"CLICKHOUSE_PORT": "8124",
+				"CLICKHOUSE_USER": "default",
+				"CLICKHOUSE_PASSWORD": "clickhouse",
+				"CLICKHOUSE_DATABASE": "analytics",
+				"CLICKHOUSE_SECURE": "false"
+			}
+		},
+		"context7": {
+			"type": "http",
+			"url": "https://mcp.context7.com/mcp"
+		},
+		"github": {
+			"command": "npx",
+			"args": ["-y", "@modelcontextprotocol/server-github"],
+			"env": {
+				"GITHUB_PERSONAL_ACCESS_TOKEN": "<your token>"
+			}
+		}
+	}
+}
