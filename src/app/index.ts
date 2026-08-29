@@ -5,7 +5,7 @@ import { ClickHouseModule } from "@libs/clickhouse/src";
 import { PrismaModule } from "@libs/prisma/src";
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
-import { APP_GUARD } from "@nestjs/core";
+import { APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
 import { GraphQLModule } from "@nestjs/graphql";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ScheduleModule } from "@nestjs/schedule";
@@ -21,6 +21,7 @@ import { AppController } from "./app.controller";
 import { QueueName } from "./app.enum";
 import { AppExceptionFilter } from "./exception/app.filter";
 import { GqlThrottlerGuard } from "./gql-throttler.guard";
+import { LoggingInterceptor } from "./interceptors/logging.interceptor";
 import { RedisLifecycle } from "./redis-lifecycle.provider";
 
 /**
@@ -114,6 +115,8 @@ const bullBoardFeatures = allQueues.map((name) =>
 		// это тратить бюджет лимита на чужие запросы.
 		{ provide: APP_GUARD, useClass: ServiceTokenGuard },
 		{ provide: APP_GUARD, useClass: GqlThrottlerGuard },
+		// Одна строка на запрос: что, кто, сколько, чем кончилось.
+		{ provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
 	],
 })
 export class AppModule {}

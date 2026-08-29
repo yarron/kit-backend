@@ -43,7 +43,8 @@
 		"prisma:test:studio": "env-cmd -e TEST prisma studio",
 		"prisma:prod:deploy": "pnpm prisma:generate && MIGRATIONS_ENV=prod env-cmd -e PROD prisma migrate deploy",
 		"prisma:prod:status": "MIGRATIONS_ENV=prod env-cmd -e PROD prisma migrate status",
-		"postinstall": "pnpm prisma:generate"
+		"postinstall": "pnpm prisma:generate",
+		"explain": "env-cmd -e LOCAL tsx scripts/explain.ts"
 	},
 	"dependencies": {
 		"@apollo/server": "^5.2.0",

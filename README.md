@@ -68,6 +68,7 @@ curl -s -X POST http://localhost:9800/gql \
 | `pnpm db:up` / `pnpm db:down` | контейнеры с базами |
 | `pnpm ch:migrate` | миграции ClickHouse |
 | `pnpm seed` | демо-данные |
+| `pnpm explain` | показывает, идут ли горячие запросы по индексу (IXSCAN) или перебирают коллекцию (COLLSCAN) |
 | `pnpm prisma:local:gen` | новая миграция Postgres (нужен `DATABASE_URL`) |
 | `pnpm prisma:sync` | пересобрать `schema.prisma` из `src/modules/**/*.prisma` |
 

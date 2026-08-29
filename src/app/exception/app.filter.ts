@@ -51,6 +51,24 @@ export class AppExceptionFilter implements ExceptionFilter {
 
 	constructor(private readonly httpAdapterHost: HttpAdapterHost) {}
 
+	/** Идентификатор запроса, если он есть: из заголовка или от интерцептора. */
+	private requestIdOf(host: ArgumentsHost, hostType: string): string {
+		try {
+			const request =
+				hostType === "graphql"
+					? GqlExecutionContext.create(host as ExecutionContext).getContext()
+							.req
+					: host.switchToHttp().getRequest();
+			return request?.requestId ?? request?.headers?.["x-request-id"] ?? "";
+		} catch {
+			// Транспорт без req (например, бот): идентификатора нет, и это
+			// нормально. Логируем сам факт на debug, чтобы «пусто» не выглядело
+			// как «потеряли».
+			this.logger.debug("requestId недоступен для этого транспорта");
+			return "";
+		}
+	}
+
 	catch(exception: unknown, host: ArgumentsHost): void {
 		const hostType = host.getType<string>();
 
@@ -66,13 +84,20 @@ export class AppExceptionFilter implements ExceptionFilter {
 		const realMessage =
 			exception instanceof Error ? exception.message : String(exception);
 
+		// requestId берём из заголовка, а не из того, что положил интерцептор:
+		// запрос, отклонённый guard'ом, до интерцептора не доходит вовсе
+		// (guard'ы выполняются раньше), а связать его с жалобой пользователя
+		// нужно ровно так же — особенно 401, которых бывает много подряд.
+		const requestId = this.requestIdOf(host, hostType);
+		const prefix = requestId ? `[${requestId}] ` : "";
+
 		if (status >= 500) {
-			this.logger.error(`[${hostType}] ${realMessage}`);
+			this.logger.error(`${prefix}[${hostType}] ${realMessage}`);
 			if (exception instanceof Error && exception.stack) {
 				this.logger.error(exception.stack);
 			}
 		} else {
-			this.logger.warn(`[${hostType}] ${status} ${realMessage}`);
+			this.logger.warn(`${prefix}[${hostType}] ${status} ${realMessage}`);
 		}
 
 		// 5xx goes to Sentry; deliberate 4xx does not. A validation error is the
