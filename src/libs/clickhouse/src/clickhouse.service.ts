@@ -9,6 +9,7 @@ import {
 	type OnModuleDestroy,
 	type OnModuleInit,
 } from "@nestjs/common";
+import { reportError } from "@utils/report-error.util";
 import type { ClickHouseOptions } from "./clickhouse.interface";
 
 /**
@@ -57,17 +58,19 @@ export class ClickHouseService implements OnModuleInit, OnModuleDestroy {
 				`ClickHouse connected (db=${ClickHouseService._options.db.database})`,
 			);
 		} catch (error) {
-			this.logger.error(
-				`ClickHouse ping failed (non-fatal): ${
-					error instanceof Error ? error.message : String(error)
-				}`,
-			);
+			// Non-fatal by design (analytics is a secondary store) — but it is
+			// still reported. "The app boots without ClickHouse" must not mean
+			// "nobody finds out ClickHouse is down".
+			reportError(this.logger, error, { operation: "clickhouse.ping" });
 		}
 	}
 
 	async onModuleDestroy(): Promise<void> {
 		await this.client.close().catch((error) => {
-			this.logger.warn(`ClickHouse close failed: ${String(error)}`);
+			reportError(this.logger, error, {
+				operation: "clickhouse.close",
+				level: "warning",
+			});
 		});
 	}
 

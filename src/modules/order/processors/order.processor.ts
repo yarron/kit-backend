@@ -2,6 +2,7 @@ import { JobName, QueueName } from "@app/app.enum";
 import { AnalyticsService } from "@modules/analytics/analytics.service";
 import { Processor, WorkerHost } from "@nestjs/bullmq";
 import { Logger } from "@nestjs/common";
+import { reportError } from "@utils/report-error.util";
 import type { Job } from "bullmq";
 import { OrderStatusEnum } from "../order.enum";
 import { isRetryable } from "../order.helpers";
@@ -106,10 +107,15 @@ export class OrderProcessor extends WorkerHost {
 				occurredAt: new Date(),
 			});
 
-			this.logger.error(`order ${orderId} failed permanently: ${message}`);
-
 			// Swallowed on purpose: the order is in a terminal state and recorded.
-			// Rethrowing here would retry a request the provider has rejected.
+			// Rethrowing would retry a request the provider has already rejected.
+			// Swallowed does NOT mean silent — a customer's order just failed
+			// permanently, which is exactly what an error tracker is for.
+			reportError(this.logger, error, {
+				operation: "order.fulfil.permanent",
+				extra: { orderId, userId: order.userId, totalUsd: order.totalUsd },
+			});
+
 			return { failed: true, message };
 		}
 	}

@@ -1,0 +1,44 @@
+// AUTO-GENERATED — не редактируй руками.
+// Источники: src/modules/**/*.prisma. Пересобрать: pnpm prisma:sync
+
+generator client {
+  provider      = "prisma-client-js"
+  output        = "./generated"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── module: invoice (src/modules/invoice/invoice.prisma) ──
+/// Счёт по заказу. Живёт в Postgres, а не в Mongo, намеренно:
+/// это учебный пример второго слоя хранения в одном приложении.
+model Invoice {
+  id      Int    @id @default(autoincrement())
+  /// Ссылка на заказ из Mongo. Между разными базами внешнего ключа не бывает —
+  /// целостность держит приложение, и это осознанная цена такой схемы.
+  orderId String @map("order_id")
+
+  amountUsd Float         @map("amount_usd")
+  status    InvoiceStatus @default(Draft)
+
+  /// Soft delete: строка остаётся, ссылки на неё не превращаются в мусор.
+  /// Фильтр deletedAt: null навешивает SoftDeleteExtension, а не каждый вызов.
+  deletedAt DateTime? @map("deleted_at")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([orderId])
+  @@index([status, createdAt])
+  @@map("invoices")
+}
+
+enum InvoiceStatus {
+  Draft
+  Issued
+  Paid
+  Void
+}

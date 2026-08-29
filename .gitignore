@@ -10,3 +10,4 @@ logs/
 .mcp.json
 .claude/settings.local.json
 *.tsbuildinfo
+prisma/generated/

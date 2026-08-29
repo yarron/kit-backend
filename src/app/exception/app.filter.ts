@@ -8,6 +8,7 @@ import {
 } from "@nestjs/common";
 import { HttpAdapterHost } from "@nestjs/core";
 import { GqlExecutionContext } from "@nestjs/graphql";
+import * as Sentry from "@sentry/nestjs";
 import { GraphQLError } from "graphql";
 
 /**
@@ -74,7 +75,14 @@ export class AppExceptionFilter implements ExceptionFilter {
 			this.logger.warn(`[${hostType}] ${status} ${realMessage}`);
 		}
 
-		// This is where Sentry.captureException(exception) goes in a real project.
+		// 5xx goes to Sentry; deliberate 4xx does not. A validation error is the
+		// app working — putting it in the error tracker is how the tracker
+		// becomes noise nobody reads.
+		if (status >= 500) {
+			Sentry.captureException(exception, {
+				tags: { transport: hostType, status: String(status) },
+			});
+		}
 
 		if (hostType === "graphql") {
 			// Throwing from the filter is how Apollo learns about the error: it is

@@ -1,5 +1,6 @@
 import { ClickHouseService } from "@libs/clickhouse/src";
 import { Injectable, Logger } from "@nestjs/common";
+import { reportError } from "@utils/report-error.util";
 import type { DailyStatEntity, OrderEventEntity } from "./analytics.entity";
 import {
 	fromClickhouseDateTime,
@@ -73,11 +74,13 @@ export class AnalyticsService {
 				},
 			]);
 		} catch (error) {
-			this.logger.error(
-				`recordOrderEvent failed for ${event.orderId}: ${
-					error instanceof Error ? error.message : String(error)
-				}`,
-			);
+			// Swallowed so analytics can never fail a customer's order — and
+			// reported, because a silent ClickHouse outage means events are
+			// being lost right now and the numbers will be wrong later.
+			reportError(this.logger, error, {
+				operation: "analytics.recordOrderEvent",
+				extra: { orderId: event.orderId, eventType: event.eventType },
+			});
 		}
 	}
 

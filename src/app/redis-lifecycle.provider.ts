@@ -1,4 +1,5 @@
 import { Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
+import { reportError } from "@utils/report-error.util";
 import { RedisCacheService } from "nestjs-redis-box";
 
 /**
@@ -26,7 +27,10 @@ export class RedisLifecycle implements OnModuleDestroy {
 		try {
 			await this.redis.quit();
 		} catch (error) {
-			this.logger.warn(`redis quit failed: ${String(error)}`);
+			reportError(this.logger, error, {
+				operation: "redis.quit",
+				level: "warning",
+			});
 		}
 	}
 }

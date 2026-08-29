@@ -5,6 +5,7 @@
 # end up writing test fixtures into another project's database.
 volumes:
   mongodb_data:
+  postgres_data:
   clickhouse_data:
 
 services:
@@ -19,6 +20,25 @@ services:
       - "27811:27017"
     volumes:
       - mongodb_data:/bitnami/mongodb
+
+  # Второй слой хранения — для модуля invoice (Prisma). Нужен только если
+  # в окружении задан DATABASE_URL.
+  postgres:
+    image: "postgres:17-alpine"
+    environment:
+      POSTGRES_USER: starter
+      POSTGRES_PASSWORD: starter
+      POSTGRES_DB: starter
+    restart: always
+    ports:
+      - "54811:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U starter"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
   redis:
     image: "bitnami/redis:latest"

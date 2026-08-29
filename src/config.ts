@@ -42,11 +42,20 @@ export const FAILED_JOB_RETENTION = { age: 60 * 60 * 24 * 7, count: 5_000 };
 
 export const CONFIG = {
 	platform: {
-		port: Number(process.env.PORT) || 9000,
+		// 9800, а не 9000: на 9000 слушает нативный протокол ClickHouse, и на
+		// машине, где поднят любой другой проект с CH, порт уже занят. Дефолтные
+		// порты — самый частый источник «у меня не стартует».
+		port: Number(process.env.PORT) || 9800,
 		env: process.env.PLATFORM_ENV || "local",
 		origin: process.env.PLATFORM_ORIGIN || "http://localhost:3000",
 		/** Guards the GraphQL API, BullBoard and Swagger. Never commit a real one. */
 		apiKey: process.env.PLATFORM_KEY || "local-admin-key",
+		/**
+		 * Общий секрет с фронтом (BFF). Задан → бэкенд принимает запросы только
+		 * от своих сервисов. Пусто → проверка выключена (локально), и об этом
+		 * пишется предупреждение при старте.
+		 */
+		serviceToken: process.env.SERVICE_TOKEN || "",
 	},
 
 	mongodb: {
@@ -66,6 +75,16 @@ export const CONFIG = {
 		isCache: true,
 		isTransport: false,
 		isGraphql: true,
+	},
+
+	postgres: {
+		/**
+		 * Второй слой хранения. Пусто → весь Prisma-слой (модуль invoice тоже)
+		 * просто не поднимается: см. app/index.ts. Так «готовый к включению
+		 * слой» остаётся выключаемым одной переменной, а не удалением кода.
+		 */
+		url: process.env.DATABASE_URL || "",
+		logging: process.env.POSTGRES_LOGGING === "true",
 	},
 
 	clickhouse: {

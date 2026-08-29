@@ -38,15 +38,15 @@ pnpm local
 
 | адрес | что это |
 |---|---|
-| http://localhost:9000/health |healthcheck (его дёргает хостинг) |
-| http://localhost:9000/gql | GraphQL playground |
-| http://localhost:9000/swg | Swagger по REST-части |
-| http://localhost:9000/que | BullBoard — очереди, job'ы, ретраи (логин `admin`, пароль = `PLATFORM_KEY`) |
+| http://localhost:9800/health |healthcheck (его дёргает хостинг) |
+| http://localhost:9800/gql | GraphQL playground |
+| http://localhost:9800/swg | Swagger по REST-части |
+| http://localhost:9800/que | BullBoard — очереди, job'ы, ретраи (логин `admin`, пароль = `PLATFORM_KEY`) |
 
 Проверь, что живое:
 
 ```bash
-curl -s -X POST http://localhost:9000/gql \
+curl -s -X POST http://localhost:9800/gql \
   -H 'content-type: application/json' \
   -H 'x-api-key: local-admin-key' \
   -d '{"query":"mutation { userCreate(payload:{email:\"a@b.c\", name:\"Alice\"}) { _id email } }"}'

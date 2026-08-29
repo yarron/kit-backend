@@ -1,3 +1,6 @@
+// Sentry ДО всего остального — иначе инструментирование не подхватит
+// http/mongo/redis. Порядок импортов здесь значим.
+import "./instrument";
 import "./preload";
 
 import { Logger, ValidationPipe } from "@nestjs/common";
@@ -66,6 +69,12 @@ async function bootstrap(): Promise<void> {
 	// locks and Mongo connections are dropped, not closed. Every hosting platform
 	// sends SIGTERM on deploy, so this is not an edge case — it runs every time.
 	app.enableShutdownHooks();
+
+	if (!CONFIG.platform.serviceToken) {
+		// Громко: без секрета бэкенд принимает запросы от кого угодно, кто
+		// до него дотянулся. Локально это норма, в проде — дыра.
+		logger.warn("SERVICE_TOKEN не задан — проверка «свой сервис» выключена");
+	}
 
 	await app.listen(CONFIG.platform.port);
 

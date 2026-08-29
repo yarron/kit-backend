@@ -12,6 +12,7 @@ import {
 	CONFIG,
 	FAILED_JOB_RETENTION,
 } from "@src/config";
+import { reportError } from "@utils/report-error.util";
 import type { Queue } from "bullmq";
 
 /**
@@ -59,10 +60,8 @@ export class OrderQueue {
 			);
 		} catch (error) {
 			// Never swallow silently. A cron that fails quietly looks exactly like
-			// a cron that has nothing to do.
-			this.logger.error(
-				`scheduleFlush failed: ${error instanceof Error ? error.message : String(error)}`,
-			);
+			// a cron that has nothing to do — and pending orders pile up unseen.
+			reportError(this.logger, error, { operation: "order.scheduleFlush" });
 		}
 	}
 
@@ -87,9 +86,10 @@ export class OrderQueue {
 				},
 			);
 		} catch (error) {
-			this.logger.error(
-				`scheduleDailyRollup failed: ${error instanceof Error ? error.message : String(error)}`,
-			);
+			reportError(this.logger, error, {
+				operation: "order.scheduleDailyRollup",
+				extra: { day },
+			});
 		}
 	}
 

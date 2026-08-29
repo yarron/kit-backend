@@ -6,6 +6,7 @@ import {
 	HealthCheckService,
 	type HealthIndicatorResult,
 } from "@nestjs/terminus";
+import { Public } from "@src/guard/public.decorator";
 import type { Connection } from "mongoose";
 import { RedisCacheService } from "nestjs-redis-box";
 
@@ -26,11 +27,14 @@ export class AppController {
 		@InjectConnection() private readonly mongo: Connection,
 	) {}
 
+	@Public()
 	@Get()
 	root(): string {
 		return "Service is running.";
 	}
 
+	// Публичный: платформа опрашивает его без секретов, и он не отдаёт данных.
+	@Public()
 	@Get("health")
 	@HealthCheck()
 	check() {

@@ -2,12 +2,17 @@ import { BullMQAdapter } from "@bull-board/api/bullMQAdapter";
 import { ExpressAdapter } from "@bull-board/express";
 import { BullBoardModule } from "@bull-board/nestjs";
 import { ClickHouseModule } from "@libs/clickhouse/src";
+import { PrismaModule } from "@libs/prisma/src";
 import { BullModule } from "@nestjs/bullmq";
 import { Module } from "@nestjs/common";
+import { APP_GUARD } from "@nestjs/core";
 import { GraphQLModule } from "@nestjs/graphql";
 import { MongooseModule } from "@nestjs/mongoose";
 import { ScheduleModule } from "@nestjs/schedule";
 import { TerminusModule } from "@nestjs/terminus";
+import { ThrottlerModule } from "@nestjs/throttler";
+import { SentryModule } from "@sentry/nestjs/setup";
+import { ServiceTokenGuard } from "@src/guard/service-token.guard";
 import basicAuth from "express-basic-auth";
 import { RedisModule } from "nestjs-redis-box";
 import { CONFIG } from "../config";
@@ -15,6 +20,7 @@ import { modules } from "../modules/modules";
 import { AppController } from "./app.controller";
 import { QueueName } from "./app.enum";
 import { AppExceptionFilter } from "./exception/app.filter";
+import { GqlThrottlerGuard } from "./gql-throttler.guard";
 import { RedisLifecycle } from "./redis-lifecycle.provider";
 
 /**
@@ -68,11 +74,24 @@ const bullBoardFeatures = allQueues.map((name) =>
 		BullModule.forRoot(CONFIG.redis),
 		ClickHouseModule.register(CONFIG.clickhouse),
 
+		// Postgres подключается ТОЛЬКО если задан DATABASE_URL. Иначе приложение
+		// работает на Mongo и не пытается достучаться до базы, которой нет.
+		...(CONFIG.postgres.url
+			? [PrismaModule.register({ db: CONFIG.postgres })]
+			: []),
+
 		GraphQLModule.forRootAsync(CONFIG.graphqlFn(modules)),
+
+		// Подхватывает Sentry.init из instrument.ts и вешает трейсинг на Nest.
+		SentryModule.forRoot(),
 
 		// Enables @Cron decorators anywhere in the app.
 		ScheduleModule.forRoot(),
 		TerminusModule,
+
+		// Лимит на источник. Числа — про то, сколько ДОЛЖЕН делать нормальный
+		// клиент, а не про то, сколько выдержит сервер.
+		ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
 
 		BullBoardModule.forRoot({
 			route: "/que",
@@ -87,6 +106,14 @@ const bullBoardFeatures = allQueues.map((name) =>
 			],
 		}),
 	],
-	providers: [AppExceptionFilter, RedisLifecycle],
+	providers: [
+		AppExceptionFilter,
+		RedisLifecycle,
+		// Порядок значим: сперва «свой ли сервис», потом «не частит ли».
+		// Считать лимит для запроса, который всё равно будет отвергнут, —
+		// это тратить бюджет лимита на чужие запросы.
+		{ provide: APP_GUARD, useClass: ServiceTokenGuard },
+		{ provide: APP_GUARD, useClass: GqlThrottlerGuard },
+	],
 })
 export class AppModule {}

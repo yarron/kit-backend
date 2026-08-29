@@ -1,4 +1,6 @@
+import { CONFIG } from "@src/config";
 import { AnalyticsModule } from "./analytics";
+import { InvoiceModule } from "./invoice";
 import { OrderModule } from "./order";
 import { UserModule } from "./user";
 
@@ -10,4 +12,12 @@ import { UserModule } from "./user";
  * resolver in the folder) means a half-finished module ships to production the
  * moment someone creates the file.
  */
-export const modules = [UserModule, OrderModule, AnalyticsModule];
+export const modules = [
+	UserModule,
+	OrderModule,
+	AnalyticsModule,
+	// Модуль на Postgres появляется в схеме только вместе со слоем Prisma.
+	// Резолвер без базы отвечал бы 500 на каждый запрос — лучше, чтобы поля
+	// в схеме просто не было.
+	...(CONFIG.postgres.url ? [InvoiceModule] : []),
+];

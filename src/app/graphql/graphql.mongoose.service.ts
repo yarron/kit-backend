@@ -43,7 +43,7 @@ export class GraphqlMongooseService<
 		andWhere: Record<string, unknown> = {},
 	): Promise<T | null> {
 		const allowed = this.allowedColumns();
-		const where: Record<string, unknown> = { ...andWhere };
+		const where: Record<string, unknown> = {};
 
 		for (const [key, value] of Object.entries(payload ?? {})) {
 			if (value === undefined || value === null) continue;
@@ -51,15 +51,18 @@ export class GraphqlMongooseService<
 			where[key] = value;
 		}
 
-		return this.findOne(where) as unknown as Promise<T | null>;
+		return this.findOne({
+			...where,
+			...andWhere,
+		}) as unknown as Promise<T | null>;
 	}
 
-	private buildWhere(
+	protected buildWhere(
 		filters: FilterInput[] = [],
 		andWhere: Record<string, unknown> = {},
 	): Record<string, unknown> {
 		const allowed = this.allowedColumns();
-		const where: Record<string, unknown> = { ...andWhere };
+		const where: Record<string, unknown> = {};
 
 		for (const filter of filters) {
 			if (!allowed.has(filter.columnName)) continue;
@@ -96,10 +99,13 @@ export class GraphqlMongooseService<
 			}
 		}
 
-		return where;
+		// andWhere накладывается ПОСЛЕДНИМ и перекрывает клиентские фильтры.
+		// Здесь живёт скоуп безопасности («только не удалённые», «только свои»),
+		// и запрос не должен уметь из него выйти.
+		return { ...where, ...andWhere };
 	}
 
-	private buildSort(sorts: SortInput[] = []): Record<string, 1 | -1> {
+	protected buildSort(sorts: SortInput[] = []): Record<string, 1 | -1> {
 		const allowed = this.allowedColumns();
 		const sort: Record<string, 1 | -1> = {};
 
