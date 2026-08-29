@@ -45,7 +45,7 @@ export class ClickHouseService implements OnModuleInit, OnModuleDestroy {
 			database,
 			username,
 			password,
-			application: "nestjs-starter-kit",
+			application: "kit",
 		});
 		ClickHouseService.sharedClient = this.client;
 	}

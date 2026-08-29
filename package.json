@@ -1,5 +1,5 @@
 {
-	"name": "nestjs-starter-kit",
+	"name": "kit-backend",
 	"version": "1.0.0",
 	"description": "Production-shaped NestJS starter: GraphQL + Mongo + BullMQ + ClickHouse",
 	"license": "UNLICENSED",
