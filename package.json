@@ -27,6 +27,7 @@
 		"db:up": "docker compose up -d",
 		"db:down": "docker compose down",
 		"ch:migrate": "env-cmd -e LOCAL tsx scripts/clickhouse-migrate.ts local",
+		"ch:railway-cmd": "tsx scripts/clickhouse-railway-cmd.ts",
 		"seed": "env-cmd -e LOCAL tsx scripts/seed.ts",
 		"sentry:sourcemaps": "sentry-cli sourcemaps inject ./dist && sentry-cli sourcemaps upload --release=${npm_package_name}@${npm_package_version} ./dist",
 		"prisma:sync": "tsx prisma/scripts/sync-schemas.ts",

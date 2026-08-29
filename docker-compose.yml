@@ -1,3 +1,9 @@
+# Имя compose-проекта закреплено ЯВНО. По умолчанию оно берётся из имени
+# папки, поэтому переименование каталога тихо создаёт вторую копию стека:
+# старые контейнеры продолжают жить, держат порты, и `docker compose down`
+# из переименованной папки их не видит.
+name: kit-backend
+
 # Local databases. `pnpm db:up` starts them, `pnpm db:down` stops them.
 #
 # Ports are deliberately NOT the defaults (27017 / 6379 / 8123): a developer
@@ -65,6 +71,13 @@ services:
       - "8124:8123"
     volumes:
       - clickhouse_data:/var/lib/clickhouse
+      # Политика логирования — одна и та же локально и на проде: на Railway
+      # этот же файл кладётся стартовой командой (pnpm ch:railway-cmd).
+      # Файлы РАЗМЕРА (zz-memory.xml, zz-disable-profiler.xml) сюда НЕ
+      # монтируются: они посчитаны под 6 GiB инстанса, а сколько памяти у
+      # твоего Docker — знает только твой Docker. Локально пусть ClickHouse
+      # считает лимит от того, что реально видит.
+      - ./clickhouse/config.d/zz-system-log-ttl.xml:/etc/clickhouse-server/config.d/zz-system-log-ttl.xml:ro
     healthcheck:
       test: ["CMD-SHELL", "clickhouse-client --query 'SELECT 1' || exit 1"]
       interval: 10s

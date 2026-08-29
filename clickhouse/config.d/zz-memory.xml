@@ -1,0 +1,28 @@
+<clickhouse>
+  <!--
+    РАЗМЕР (зависит от инстанса). Посчитано для 6 GiB RAM.
+
+    max_server_memory_usage — вот это и есть защита машины: суммарный потолок
+    на весь сервер. Задан явно, и явное значение ПЕРЕБИВАЕТ ratio (ratio
+    работает только когда здесь 0). Оставлены 1.5 GiB сверху — операционной
+    системе и файловому кэшу, из которого ClickHouse и читает быстро.
+
+    Кэши меток урезаны с дефолтных 5 GiB: на инстансе, где всей памяти 6,
+    дефолт означает «сервер сам себя вытеснит».
+
+    max_concurrent_queries — не про память, а про то, что 2 vCPU не исполняют
+    сто запросов, они их растягивают. Лучше отказать двадцать первому сразу,
+    чем сделать все двадцать медленными.
+  -->
+  <total_memory_profiler_step>0</total_memory_profiler_step>
+
+  <!-- 4.5 GiB из 6 GiB -->
+  <max_server_memory_usage>4831838208</max_server_memory_usage>
+  <max_server_memory_usage_to_ram_ratio>0.8</max_server_memory_usage_to_ram_ratio>
+
+  <!-- 512 MiB / 256 MiB вместо дефолтных 5 GiB / 5 GiB -->
+  <mark_cache_size>536870912</mark_cache_size>
+  <index_mark_cache_size>268435456</index_mark_cache_size>
+
+  <max_concurrent_queries>20</max_concurrent_queries>
+</clickhouse>

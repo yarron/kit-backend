@@ -1,0 +1,33 @@
+<clickhouse>
+  <!--
+    РАЗМЕР (зависит от инстанса). Числа ниже посчитаны для 6 GiB RAM
+    скриптом scripts/clickhouse-railway-cmd.ts — не правь их руками,
+    перегенерируй под свой инстанс.
+
+    Профилировщики выключены: они пишут в trace_log, которого больше нет,
+    и стоят процессорного времени на каждом запросе.
+
+    max_memory_usage — потолок на ОДИН запрос. Он не защищает сервер
+    (двадцать запросов по 3 GiB его переживут), он ловит один запрос,
+    который решил сгруппировать всё на свете.
+
+    max_bytes_before_external_* — порог, после которого GROUP BY и ORDER BY
+    сливаются на диск вместо падения с MEMORY_LIMIT_EXCEEDED. Ставится
+    ПОЛОВИНОЙ от max_memory_usage: фаза слияния тоже требует памяти, и если
+    порог равен потолку, запрос упадёт ровно в тот момент, когда начнёт
+    спасаться.
+  -->
+  <profiles>
+    <default>
+      <query_profiler_real_time_period_ns>0</query_profiler_real_time_period_ns>
+      <query_profiler_cpu_time_period_ns>0</query_profiler_cpu_time_period_ns>
+      <memory_profiler_step>0</memory_profiler_step>
+
+      <!-- 3 GiB на запрос -->
+      <max_memory_usage>3221225472</max_memory_usage>
+      <!-- спил на диск с 1.5 GiB = половина потолка -->
+      <max_bytes_before_external_group_by>1610612736</max_bytes_before_external_group_by>
+      <max_bytes_before_external_sort>1610612736</max_bytes_before_external_sort>
+    </default>
+  </profiles>
+</clickhouse>

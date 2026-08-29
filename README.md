@@ -67,6 +67,7 @@ curl -s -X POST http://localhost:9800/gql \
 | `pnpm test:all` | и то и другое |
 | `pnpm db:up` / `pnpm db:down` | контейнеры с базами |
 | `pnpm ch:migrate` | миграции ClickHouse |
+| `pnpm ch:railway-cmd` | собирает startCommand для ClickHouse на Railway из `clickhouse/*.xml` |
 | `pnpm seed` | демо-данные |
 | `pnpm explain` | показывает, идут ли горячие запросы по индексу (IXSCAN) или перебирают коллекцию (COLLSCAN) |
 | `pnpm prisma:local:gen` | новая миграция Postgres (нужен `DATABASE_URL`) |
@@ -106,6 +107,25 @@ src/
 │
 └── instrument.ts            Sentry — ДО всего остального, иначе трейсинг пуст
 ```
+
+Рядом с `src/`:
+
+```
+clickhouse/                  конфиги ClickHouse — ИСТОЧНИК ПРАВДЫ
+├── config.d/
+│   ├── zz-system-log-ttl.xml    политика логов (одинакова везде)
+│   └── zz-memory.xml            размер (функция RAM инстанса)
+└── users.d/
+    └── zz-disable-profiler.xml  размер (функция RAM инстанса)
+```
+
+На Railway конфиг некуда примонтировать, поэтому его пишет стартовая команда,
+а XML нельзя передать строкой — парсер съедает бэкслеши и сервис ложится.
+Отсюда base64, отсюда же и правило: **base64 руками не редактируем**, меняем
+XML и перегенерируем `pnpm ch:railway-cmd`. Локально монтируется только файл
+политики: числа памяти посчитаны под конкретный инстанс, а сколько памяти
+у твоего Docker — знает только он. Подробности — в
+`../docs/CLOUDFLARE-RAILWAY.md`, раздел 10.
 
 ### Анатомия модуля — держись её
 
