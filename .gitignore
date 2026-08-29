@@ -11,3 +11,13 @@ logs/
 .claude/settings.local.json
 *.tsbuildinfo
 prisma/generated/
+
+# Секреты. В репозиторий попадают ТОЛЬКО *.example.
+.env
+.env.*
+!.env.*.example
+.env-cmdrc.json
+.mcp.json
+*.pem
+*.key
+.claude/settings.local.json
