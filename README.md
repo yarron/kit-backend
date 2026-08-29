@@ -67,6 +67,8 @@ curl -s -X POST http://localhost:9800/gql \
 | `pnpm db:up` / `pnpm db:down` | контейнеры с базами |
 | `pnpm ch:migrate` | миграции ClickHouse |
 | `pnpm seed` | демо-данные |
+| `pnpm prisma:local:gen` | новая миграция Postgres (нужен `DATABASE_URL`) |
+| `pnpm prisma:sync` | пересобрать `schema.prisma` из `src/modules/**/*.prisma` |
 
 ---
 
@@ -85,18 +87,22 @@ src/
 │   ├── exception/           один глобальный фильтр на http и graphql
 │   └── graphql/             generic-пагинация, фильтры, базовый сервис
 │
-├── guard/                   ApiKeyGuard (в бою — JWT, форма та же)
+├── guard/                   ApiKeyGuard, ServiceTokenGuard, @Public()
 │
 ├── libs/                    техслой, переносимый между проектами как есть
 │   ├── mongoose/            база для доменных Mongo-сервисов
+│   ├── prisma/              Postgres: клиент, пул, расширения (soft delete)
 │   └── clickhouse/          клиент + свой раннер миграций + .sql
 │
 ├── utils/                   ЧИСТЫЕ функции. Их дешевле всего покрыть тестами
 │
-└── modules/                 бизнес. Три штуки, три разных архетипа:
-    ├── user/                CRUD через GraphQL — самый частый вид модуля
-    ├── order/               очередь: cron → queue → processor, ретраи, идемпотентность
-    └── analytics/           ClickHouse: append-only события и агрегаты
+├── modules/                 бизнес. Четыре штуки, четыре разных архетипа:
+│   ├── user/                CRUD через GraphQL — самый частый вид модуля
+│   ├── order/               очередь: cron → queue → processor, ретраи, идемпотентность
+│   ├── analytics/           ClickHouse: append-only события и агрегаты
+│   └── invoice/             Postgres/Prisma: транзакции, переходы статусов, soft delete
+│
+└── instrument.ts            Sentry — ДО всего остального, иначе трейсинг пуст
 ```
 
 ### Анатомия модуля — держись её
@@ -143,3 +149,35 @@ DI, code-first GraphQL и class-validator читают имена классов
 - `docs/EXERCISES.md` — упражнения по возрастанию сложности
 - `CLAUDE.md` — правила работы, в том числе с ИИ-ассистентом
 - `.claude-tasks/TEMPLATE.md` — шаблон задачи
+
+
+---
+
+## Второй слой хранения: Postgres + Prisma
+
+Включается ОДНОЙ переменной. Пусто → приложение работает на Mongo и в базу,
+которой нет, не стучится; модуль `invoice` в схеме GraphQL просто не появляется.
+
+```bash
+DATABASE_URL=postgresql://starter:starter@localhost:54811/starter?schema=public
+pnpm db:up                 # поднимет и postgres тоже
+pnpm prisma:local:gen      # применит миграции
+```
+
+Что там показано: пул соединений в строке подключения (у Postgres жёсткий
+потолок, и три реплики с дефолтами съедают его целиком), схема, собранная
+из кусочков в модулях, миграции по окружениям с промоушеном local → dev → prod,
+и soft-delete расширением, которое **запрещает** `delete()` вместо того чтобы
+молча подменить его на `update()`.
+
+## Безопасность
+
+`ServiceTokenGuard` глобальный: задан `SERVICE_TOKEN` — бэкенд отвечает только
+своим сервисам, всё остальное 401. `@Public()` открывает `/health` — список
+публичного должен быть коротким и явным, потому что «забыл повесить guard»
+не должно означать «открыто всему интернету».
+
+Sentry обязателен: `instrument.ts` инициализируется до Nest, фильтр исключений
+отправляет 5xx, а каждый проглатывающий `catch` идёт через
+`reportError(logger, error, { operation, extra })` — логирует И репортит.
+Немых `catch` в проекте нет ни одного.
