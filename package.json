@@ -28,6 +28,7 @@
 		"test:all": "pnpm test:unit && pnpm test:e2e",
 		"db:up": "docker compose up -d",
 		"db:down": "docker compose down",
+		"db:indexes": "env-cmd -e LOCAL tsx scripts/sync-indexes.ts",
 		"ch:migrate": "env-cmd -e LOCAL tsx scripts/clickhouse-migrate.ts local",
 		"ch:railway-cmd": "tsx scripts/clickhouse-railway-cmd.ts",
 		"seed": "env-cmd -e LOCAL tsx scripts/seed.ts",

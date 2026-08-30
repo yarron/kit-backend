@@ -77,5 +77,12 @@ jobs:
       - name: Unit tests
         run: pnpm test:unit
 
+      - name: Mongo indexes
+        # Тот же шаг, что и на деплое. autoIndex выключен, поэтому на чистой
+        # базе индексов нет — а `unique` в схеме это UNIQUE INDEX, не правило
+        # валидации. Без наката e2e гоняются против базы БЕЗ ограничений
+        # уникальности и зеленеют там, где прод бы упал.
+        run: pnpm exec env-cmd -e TEST tsx scripts/sync-indexes.ts
+
       - name: E2E tests
         run: pnpm test:e2e

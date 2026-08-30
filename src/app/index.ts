@@ -22,6 +22,7 @@ import { QueueName } from "./app.enum";
 import { AppExceptionFilter } from "./exception/app.filter";
 import { GqlThrottlerGuard } from "./gql-throttler.guard";
 import { LoggingInterceptor } from "./interceptors/logging.interceptor";
+import { mongoConnectionOptions } from "./mongo-indexes";
 import { RedisLifecycle } from "./redis-lifecycle.provider";
 
 /**
@@ -63,13 +64,10 @@ const bullBoardFeatures = allQueues.map((name) =>
 		...bullQueues,
 		...bullBoardFeatures,
 
-		MongooseModule.forRoot(CONFIG.mongodb.connection, {
-			dbName: CONFIG.mongodb.dbName,
-			// Pool size is per PROCESS, not per request. Too small and requests
-			// queue behind each other under load; too large and you exhaust the
-			// server's connection limit with a few containers.
-			maxPoolSize: 20,
-		}),
+		MongooseModule.forRoot(
+			CONFIG.mongodb.connection,
+			mongoConnectionOptions({ dbName: CONFIG.mongodb.dbName }),
+		),
 
 		RedisModule.register(CONFIG.redis),
 		BullModule.forRoot(CONFIG.redis),
@@ -120,3 +118,5 @@ const bullBoardFeatures = allQueues.map((name) =>
 	],
 })
 export class AppModule {}
+
+export * from "./mongo-indexes";

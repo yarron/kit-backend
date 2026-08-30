@@ -69,6 +69,7 @@ curl -s -X POST http://localhost:9800/gql \
 | `pnpm ch:migrate` | миграции ClickHouse |
 | `pnpm ch:railway-cmd` | собирает startCommand для ClickHouse на Railway из `clickhouse/*.xml` |
 | `pnpm seed` | демо-данные |
+| `pnpm db:indexes` | накатывает индексы из схем. Отдельно от старта: `autoIndex` выключен, и без этого шага на свежей базе нет unique-индексов — повтор `idempotencyKey` вставится молча |
 | `pnpm explain` | показывает, идут ли горячие запросы по индексу (IXSCAN) или перебирают коллекцию (COLLSCAN) |
 | `pnpm prisma:local:gen` | новая миграция Postgres (нужен `DATABASE_URL`) |
 | `pnpm prisma:sync` | пересобрать `schema.prisma` из `src/modules/**/*.prisma` |
